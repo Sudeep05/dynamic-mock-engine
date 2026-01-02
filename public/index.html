@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mock Logic Controller</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        :root { --spacing: 0.15rem; }
+        body { padding: 0.5rem 1rem; font-size: 0.82rem; line-height: 1.2; }
+        header { border-bottom: 1px solid #333; margin-bottom: 0.75rem; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: flex-end; }
+        h2 { margin: 0; font-size: 1.2rem; }
+        .subtitle { margin: 0; font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        .grid-main { display: grid; grid-template-columns: 320px 1fr; gap: 1rem; align-items: start; }
+        article { padding: 0.6rem !important; margin: 0 !important; border-radius: 4px; }
+        input, select, textarea, button { margin-bottom: 0.25rem !important; padding: 0.3rem !important; font-size: 0.75rem; }
+        label { margin-bottom: 0.1rem; font-weight: 600; font-size: 0.72rem; color: #ccc; }
+        table th, table td { padding: 0.3rem 0.5rem !important; font-size: 0.75rem; border-bottom: 1px solid #222; }
+        .status-badge { padding: 2px 4px; border-radius: 3px; font-weight: bold; font-size: 0.65rem; color: white; background: #444; }
+        .switch-container { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: bold; color: #aaa; }
+        .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .3s; border-radius: 20px; border: 1px solid #444; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #0070f3; border-color: #0070f3; }
+        input:checked + .slider:before { transform: translateX(16px); }
+        .help-icon { cursor: help; color: #0070f3; font-weight: bold; border: 1px solid #0070f3; border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; margin-left: 5px; }
+        .csv-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <hgroup>
+            <h2>Mock Logic Controller</h2>
+            <p class="subtitle">Performance Testing Middleware</p>
+        </hgroup>
+        <div style="display: flex; gap: 15px; align-items: flex-end;">
+            <a href="/_admin/health" target="_blank" style="font-size: 0.65rem; color: #28a745; text-decoration: none; font-weight: bold;">● SYSTEM ONLINE</a>
+            <div class="switch-container">
+                <span>AUTO-REFRESH</span>
+                <label class="switch"><input type="checkbox" id="autoRefresh" checked><span class="slider"></span></label>
+            </div>
+        </div>
+    </header>
+
+    <main class="grid-main">
+        <aside>
+            <article>
+                <form id="mockForm">
+                    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <label>Method <select id="method"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select></label>
+                        <label>Status 
+                            <select id="statusCode">
+                                <option value="200">200 OK</option>
+                                <option value="201">201 Created</option>
+                                <option value="400">400 Bad Request</option>
+                                <option value="401">401 Unauth</option>
+                                <option value="404">404 Not Found</option>
+                                <option value="500">500 Server Error</option>
+                            </select>
+                        </label>
+                    </div>
+                    <label>Route Path <input type="text" id="path" placeholder="/api/v1/resource" required></label>
+                    <label>Latency/Jitter (ms) <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 8px;"><input type="number" id="avgDelay" value="0"><input type="number" id="deviation" value="0"></div></label>
+                    
+<div id="requestSection" style="display:none;">
+    <label>
+        Request Template (Expected JSON) 
+        <span class="help-icon" 
+              onclick="alert('REQUEST TEMPLATE:\n\nUse this to define the JSON structure you expect to receive from your testing tool (like JMeter or Postman).\n\nWhen you send a POST/PUT request, the Mock Controller will log the ACTUAL incoming data to your terminal so you can compare it against this template for debugging.')"
+              style="cursor:pointer; background: #0070f3; color: white;">?</span>
+    </label>
+    <textarea id="requestBody" rows="2" placeholder='{"userId": 123}'></textarea>
+</div>
+
+                    <label>Response JSON <textarea id="responseBody" rows="3" placeholder='{"status":"ok"}'></textarea></label>
+                    
+                    <div class="csv-actions">
+                        <label style="margin:0;">CSV Data Pool <span class="help-icon" onclick="openModal()">?</span></label>
+                        <a href="#" onclick="document.getElementById('fileInput').click()" style="font-size:0.65rem; color:#0070f3; text-decoration: underline;">Upload File</a>
+                    </div>
+                    
+                    <div class="grid" style="grid-template-columns: 1fr auto; gap: 5px; align-items: center;">
+                        <input type="text" id="csvFile" placeholder="data/users.csv" style="margin:0 !important;">
+                        <button type="button" class="outline" onclick="downloadTemplate()" style="margin:0 !important; font-size: 0.65rem; padding: 2px 8px !important;">Template</button>
+                    </div>
+                    
+                    <input type="file" id="fileInput" style="display:none" onchange="uploadCSV(this)">
+                    <button type="submit" style="width: 100%; margin-top: 0.6rem; background-color: #0070f3; border:none; font-weight: bold;">Deploy Endpoint</button>
+                </form>
+            </article>
+        </aside>
+
+        <section>
+            <article style="padding: 0 !important; border: 1px solid #333; overflow-x: auto;">
+                <table role="grid" style="margin:0; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Endpoint Configuration</th>
+                            <th>Timing</th>
+                            <th>Hits</th>
+                            <th>Last Activity</th>
+                            <th style="text-align:right">Manage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mockList"></tbody>
+                </table>
+            </article>
+        </section>
+    </main>
+
+    <dialog id="helpModal">
+        <article style="max-width: 500px;">
+            <header>
+                <a href="#close" aria-label="Close" class="close" onclick="closeModal()"></a>
+                <strong>Mock Controller Guide</strong>
+            </header>
+            <div style="font-size: 0.8rem;">
+                <ul style="padding-left: 1rem;">
+                    <li><strong>Mapping:</strong> CSV headers must match JSON keys.</li>
+                    <li><strong>Round-Robin:</strong> Each hit cycles through the next CSV row.</li>
+                    <li><strong>Persistence:</strong> Configs are auto-saved to mocks.json.</li>
+                </ul>
+            </div>
+            <footer><button onclick="closeModal()" style="font-size: 0.75rem;">Close</button></footer>
+        </article>
+    </dialog>
+
+    <script>
+        // Toggle Request Section visibility
+        document.getElementById('method').addEventListener('change', function() {
+            document.getElementById('requestSection').style.display = (this.value === 'POST' || this.value === 'PUT') ? 'block' : 'none';
+        });
+
+        async function uploadCSV(input) {
+            if (!input.files[0]) return;
+            const formData = new FormData();
+            formData.append('csvFile', input.files[0]);
+            const res = await fetch('/_admin/upload-csv', { method: 'POST', body: formData });
+            if(res.ok) { 
+                const data = await res.json(); 
+                document.getElementById('csvFile').value = data.path; 
+            }
+        }
+
+        async function loadMocks() {
+            const res = await fetch('/_admin/list');
+            const data = await res.json();
+            document.getElementById('mockList').innerHTML = data.map(m => `
+                <tr>
+                    <td><span class="status-badge">${m.statusCode}</span> <code>${m.method}</code> <strong>${m.path}</strong></td>
+                    <td>${m.avgDelay}±${m.deviation}ms</td>
+                    <td><strong style="color:#0070f3">${m.hits}</strong></td>
+                    <td><small>${m.lastHit || 'Idle'}</small></td>
+                    <td style="text-align:right">
+                        <a href="#" onclick='editMock(${JSON.stringify(m)})' style="font-size:0.65rem; margin-right:8px;">Edit</a>
+                        <a href="#" onclick='cloneMock(${JSON.stringify(m)})' style="font-size:0.65rem; margin-right:8px; color:#0070f3;">Clone</a>
+                        <a href="#" onclick="removeMock('${m.method}:${m.path}')" style="font-size:0.65rem; color:#d32f2f;">Del</a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function editMock(m) { document.getElementById('path').value = m.path; fillForm(m); }
+        function cloneMock(m) { document.getElementById('path').value = m.path + "-copy"; fillForm(m); }
+
+        function fillForm(m) {
+            document.getElementById('method').value = m.method;
+            document.getElementById('method').dispatchEvent(new Event('change'));
+            document.getElementById('statusCode').value = m.statusCode;
+            document.getElementById('avgDelay').value = m.avgDelay;
+            document.getElementById('deviation').value = m.deviation;
+            document.getElementById('responseBody').value = JSON.stringify(m.responseBody, null, 2);
+            document.getElementById('requestBody').value = m.requestBody ? JSON.stringify(m.requestBody, null, 2) : "";
+            document.getElementById('csvFile').value = m.csvFile || "";
+            document.getElementById('path').focus();
+        }
+
+        async function downloadTemplate() {
+            const body = document.getElementById('responseBody').value;
+            if(!body) return alert("Enter Response JSON first");
+            try {
+                const res = await fetch('/_admin/generate-template', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ responseBody: JSON.parse(body) }) 
+                });
+                const blob = await res.blob();
+                const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = "template.csv"; a.click();
+            } catch(e) { alert("Invalid JSON for template"); }
+        }
+
+        document.getElementById('mockForm').onsubmit = async (e) => {
+            e.preventDefault();
+            try {
+                const body = {
+                    path: document.getElementById('path').value,
+                    method: document.getElementById('method').value,
+                    statusCode: parseInt(document.getElementById('statusCode').value),
+                    responseBody: JSON.parse(document.getElementById('responseBody').value || '{}'),
+                    requestBody: JSON.parse(document.getElementById('requestBody').value || '{}'),
+                    avgDelay: parseInt(document.getElementById('avgDelay').value || 0),
+                    deviation: parseInt(document.getElementById('deviation').value || 0),
+                    csvFile: document.getElementById('csvFile').value
+                };
+                await fetch('/_admin/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+                loadMocks();
+            } catch(e) { alert("Invalid JSON Syntax"); }
+        };
+
+        async function removeMock(key) { 
+            await fetch('/_admin/remove', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ key }) }); 
+            loadMocks(); 
+        }
+
+        function openModal() { document.getElementById('helpModal').setAttribute('open', 'true'); }
+        function closeModal() { document.getElementById('helpModal').removeAttribute('open'); }
+        setInterval(() => { if (document.getElementById('autoRefresh').checked) loadMocks(); }, 2000);
+        loadMocks();
+    </script>
+</body>
+</html>

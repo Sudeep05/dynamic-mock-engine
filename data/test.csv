@@ -1,0 +1,6 @@
+userId,sessionToken,status
+1001,TOKEN_ALPHA_99,active
+1002,TOKEN_BRAVO_88,active
+1003,TOKEN_CHARLIE_77,pending
+1004,TOKEN_DELTA_66,active
+1005,TOKEN_ECHO_55,suspended

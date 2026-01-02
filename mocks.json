@@ -1,0 +1,46 @@
+[
+  {
+    "path": "/api/v1/validate-cycle",
+    "method": "GET",
+    "statusCode": 200,
+    "responseBody": {
+      "userId": 0,
+      "sessionToken": "waiting",
+      "status": "initial",
+      "mockTimestamp": "2025-12-30"
+    },
+    "avgDelay": 100,
+    "deviation": 100,
+    "csvFile": "data/test.csv",
+    "csvData": [
+      {
+        "userId": "1001",
+        "sessionToken": "TOKEN_ALPHA_99",
+        "status": "active"
+      },
+      {
+        "userId": "1002",
+        "sessionToken": "TOKEN_BRAVO_88",
+        "status": "active"
+      },
+      {
+        "userId": "1003",
+        "sessionToken": "TOKEN_CHARLIE_77",
+        "status": "pending"
+      },
+      {
+        "userId": "1004",
+        "sessionToken": "TOKEN_DELTA_66",
+        "status": "active"
+      },
+      {
+        "userId": "1005",
+        "sessionToken": "TOKEN_ECHO_55",
+        "status": "suspended"
+      }
+    ],
+    "currentIndex": 0,
+    "hits": 0,
+    "lastHit": null
+  }
+]
